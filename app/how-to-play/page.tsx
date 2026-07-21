@@ -164,21 +164,30 @@ export default function HowToPlayPage() {
 
           {/* Game picker */}
           <div className="mb-8">
-            <label htmlFor="game-picker" className="block text-sm font-semibold text-gray-300 mb-2">
+            <p className="block text-sm font-semibold text-gray-300 mb-2">
               Elige un juego para ver sus reglas
-            </label>
-            <select
-              id="game-picker"
-              value={selectedGame}
-              onChange={(e) => setSelectedGame(e.target.value as GameType)}
-              className="w-full sm:w-auto min-w-[280px] bg-white/10 border border-white/20 text-white rounded-lg px-4 py-3 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 backdrop-blur-md"
-            >
-              {GAME_OPTIONS.map(({ type, emoji }) => (
-                <option key={type} value={type} className="bg-gray-900 text-white">
-                  {emoji} {GAMES_CONFIG[type].name}
-                </option>
-              ))}
-            </select>
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+              {GAME_OPTIONS.map(({ type, emoji }) => {
+                const isActive = selectedGame === type;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setSelectedGame(type)}
+                    aria-pressed={isActive}
+                    className={`shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-sm sm:text-base font-semibold whitespace-nowrap border transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                      isActive
+                        ? 'bg-purple-600 border-purple-500 text-white shadow-lg'
+                        : 'bg-white/10 border-white/20 text-gray-300 hover:bg-white/20 hover:text-white'
+                    }`}
+                  >
+                    <span>{emoji}</span>
+                    <span>{GAMES_CONFIG[type].name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="space-y-8">

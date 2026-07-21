@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { z } from 'zod';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import Link from 'next/link';
+
+const emailSchema = z.string().email();
 
 export default function AccountPage() {
   const { user, balance } = useAuth();
@@ -31,10 +34,10 @@ export default function AccountPage() {
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Acceso denegado</h1>
-            <p className="text-gray-600 mb-4">Debes iniciar sesión para ver tu cuenta</p>
+            <h1 className="text-2xl font-bold mb-4">{t('errors.accessDenied')}</h1>
+            <p className="text-gray-600 mb-4">{t('errors.loginRequired')}</p>
             <Link href="/auth/login" className="bg-blue-600 text-white px-4 py-2 rounded-lg">
-              Iniciar Sesión
+              {t('errors.signIn')}
             </Link>
           </div>
         </div>
@@ -49,9 +52,17 @@ export default function AccountPage() {
     setEmailError('');
 
     try {
+      // Validar formato de email
+      const emailValidation = emailSchema.safeParse(newEmail);
+      if (!emailValidation.success) {
+        setEmailError(t('account.emailModal.errorInvalidEmail'));
+        setEmailLoading(false);
+        return;
+      }
+
       // Validar que el email sea diferente
       if (newEmail === user.email) {
-        setEmailError('El nuevo email debe ser diferente al actual');
+        setEmailError(t('account.emailModal.errorSameEmail'));
         setEmailLoading(false);
         return;
       }
@@ -59,14 +70,14 @@ export default function AccountPage() {
       // Si 2FA está habilitado, validar el código
       if (twoFAEnabled) {
         if (!email2FACode || email2FACode.trim() === '') {
-          setEmailError('Se requiere el código de 2FA para cambiar el email');
+          setEmailError(t('account.emailModal.error2FARequired'));
           setEmailLoading(false);
           return;
         }
 
         // Validar que el código tenga al menos 6 caracteres
         if (email2FACode.length < 6) {
-          setEmailError('El código de 2FA debe tener al menos 6 caracteres');
+          setEmailError(t('account.emailModal.error2FALength'));
           setEmailLoading(false);
           return;
         }
@@ -77,13 +88,13 @@ export default function AccountPage() {
       }
 
       // Simular envío de confirmación
-      setEmailMessage(`Se ha enviado un correo de confirmación a ${newEmail}. Por favor, verifica tu nuevo email.`);
+      setEmailMessage(t('account.emailModal.successMessage', { email: newEmail }));
       setTimeout(() => {
         setShowEmailModal(false);
         setEmail2FACode('');
       }, 2000);
     } catch (error) {
-      setEmailError('Error al actualizar el email. Intenta nuevamente.');
+      setEmailError(t('account.emailModal.errorGeneric'));
     } finally {
       setEmailLoading(false);
     }
@@ -100,9 +111,9 @@ export default function AccountPage() {
       );
       setRecoveryCodes(codes);
       setTwoFAEnabled(true);
-      setTwoFAMessage('Se ha habilitado 2FA. Guarda tus códigos de recuperación en un lugar seguro.');
+      setTwoFAMessage(t('account.twoFAModal.enabledMessage'));
     } catch (error) {
-      setTwoFAMessage('Error al configurar 2FA');
+      setTwoFAMessage(t('account.twoFAModal.errorEnabling'));
     } finally {
       setTwoFALoading(false);
     }
@@ -112,7 +123,7 @@ export default function AccountPage() {
     setTwoFALoading(true);
     try {
       setTwoFAEnabled(false);
-      setTwoFAMessage('2FA ha sido deshabilitado');
+      setTwoFAMessage(t('account.twoFAModal.disabledMessage'));
       setTimeout(() => setShowTwoFAModal(false), 1500);
     } finally {
       setTwoFALoading(false);
@@ -284,13 +295,13 @@ export default function AccountPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-8">
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              Actualizar Email
+              {t('account.emailModal.title')}
             </h3>
 
             <div className="space-y-4 mb-6">
               <div>
                 <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
-                  Email Actual
+                  {t('account.emailModal.currentEmail')}
                 </label>
                 <input
                   type="email"
@@ -302,7 +313,7 @@ export default function AccountPage() {
 
               <div>
                 <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
-                  Nuevo Email
+                  {t('account.emailModal.newEmail')}
                 </label>
                 <input
                   type="email"
@@ -313,14 +324,14 @@ export default function AccountPage() {
                     setEmailMessage('');
                   }}
                   className="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="nuevo@email.com"
+                  placeholder={t('account.emailModal.newEmailPlaceholder')}
                 />
               </div>
 
               {twoFAEnabled && (
                 <div>
                   <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
-                    Código de 2FA
+                    {t('account.emailModal.twoFACode')}
                   </label>
                   <input
                     type="text"
@@ -331,11 +342,11 @@ export default function AccountPage() {
                       setEmailMessage('');
                     }}
                     maxLength={10}
-                    placeholder="Ingresa tu código de 2FA"
+                    placeholder={t('account.emailModal.twoFACodePlaceholder')}
                     className="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                    Este código se requiere para cambiar tu correo electrónico de forma segura.
+                    {t('account.emailModal.twoFACodeHint')}
                   </p>
                 </div>
               )}
@@ -353,8 +364,8 @@ export default function AccountPage() {
               )}
 
               <div className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="font-semibold text-blue-900 dark:text-blue-300 mb-1">📧 Importante:</p>
-                <p>Se enviará un correo de confirmación al nuevo email. Debes verificarlo para completar el cambio.{twoFAEnabled && ' También se requiere tu código de 2FA para validar esta operación segura.'}</p>
+                <p className="font-semibold text-blue-900 dark:text-blue-300 mb-1">{t('account.emailModal.importantTitle')}</p>
+                <p>{t('account.emailModal.importantText')}{twoFAEnabled && t('account.emailModal.importantText2FA')}</p>
               </div>
             </div>
 
@@ -363,14 +374,14 @@ export default function AccountPage() {
                 onClick={() => setShowEmailModal(false)}
                 className="flex-1 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-300"
               >
-                Cancelar
+                {t('account.emailModal.cancel')}
               </button>
               <button
                 onClick={handleEmailUpdate}
                 disabled={emailLoading}
                 className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-300 disabled:opacity-50"
               >
-                {emailLoading ? 'Enviando...' : 'Actualizar'}
+                {emailLoading ? t('account.emailModal.updating') : t('account.emailModal.update')}
               </button>
             </div>
           </div>
@@ -382,17 +393,23 @@ export default function AccountPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-8 max-h-[90vh] overflow-y-auto">
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              Autenticación de 2 Factores
+              {t('account.twoFAModal.title')}
             </h3>
 
             {!twoFAEnabled ? (
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-3">
-                    Elegir Método de 2FA
+                    {t('account.twoFAModal.chooseMethod')}
                   </label>
                   <div className="space-y-2">
-                    <label className="flex items-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50" style={{borderColor: twoFAMethod === 'authenticator' ? '#3b82f6' : undefined, backgroundColor: twoFAMethod === 'authenticator' ? '#eff6ff' : undefined}}>
+                    <label
+                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors duration-200 ${
+                        twoFAMethod === 'authenticator'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                    >
                       <input
                         type="radio"
                         name="2fa-method"
@@ -402,11 +419,17 @@ export default function AccountPage() {
                         className="w-4 h-4 accent-blue-600"
                       />
                       <div className="ml-3">
-                        <p className="font-semibold text-gray-900 dark:text-white">Aplicación Autenticadora</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Google Authenticator, Authy, Microsoft Authenticator</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{t('account.twoFAModal.authenticatorApp')}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{t('account.twoFAModal.authenticatorAppDesc')}</p>
                       </div>
                     </label>
-                    <label className="flex items-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50" style={{borderColor: twoFAMethod === 'sms' ? '#3b82f6' : undefined, backgroundColor: twoFAMethod === 'sms' ? '#eff6ff' : undefined}}>
+                    <label
+                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors duration-200 ${
+                        twoFAMethod === 'sms'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                    >
                       <input
                         type="radio"
                         name="2fa-method"
@@ -416,16 +439,16 @@ export default function AccountPage() {
                         className="w-4 h-4 accent-blue-600"
                       />
                       <div className="ml-3">
-                        <p className="font-semibold text-gray-900 dark:text-white">SMS</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Recibe códigos por mensaje de texto</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{t('account.twoFAModal.sms')}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{t('account.twoFAModal.smsDesc')}</p>
                       </div>
                     </label>
                   </div>
                 </div>
 
                 <div className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="font-semibold text-blue-900 dark:text-blue-300 mb-1">🔒 Seguridad:</p>
-                  <p>La autenticación de 2 factores es esencial para proteger tu cuenta y tus fondos.</p>
+                  <p className="font-semibold text-blue-900 dark:text-blue-300 mb-1">{t('account.twoFAModal.securityTitle')}</p>
+                  <p>{t('account.twoFAModal.securityText')}</p>
                 </div>
 
                 {twoFAMessage && (
@@ -436,8 +459,8 @@ export default function AccountPage() {
 
                 {showRecoveryCodes && recoveryCodes.length > 0 && (
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <p className="font-semibold text-gray-900 dark:text-white mb-2">📋 Códigos de Recuperación:</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">Guarda estos códigos en un lugar seguro. Puedes usarlos si pierdes acceso a tu autenticador.</p>
+                    <p className="font-semibold text-gray-900 dark:text-white mb-2">{t('account.twoFAModal.recoveryCodesTitle')}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">{t('account.twoFAModal.recoveryCodesHint')}</p>
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       {recoveryCodes.map((code, idx) => (
                         <div key={idx} className="font-mono text-xs bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white">
@@ -448,11 +471,11 @@ export default function AccountPage() {
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(recoveryCodes.join('\n'));
-                        alert('Códigos copiados al portapapeles');
+                        setTwoFAMessage(t('account.twoFAModal.codesCopied'));
                       }}
                       className="w-full text-xs px-3 py-1 bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-500"
                     >
-                      Copiar Códigos
+                      {t('account.twoFAModal.copyCodes')}
                     </button>
                   </div>
                 )}
@@ -460,18 +483,22 @@ export default function AccountPage() {
             ) : (
               <div className="space-y-4 mb-6">
                 <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <p className="font-semibold text-green-900 dark:text-green-300">✅ 2FA Habilitado</p>
-                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">Tu cuenta está protegida con autenticación de 2 factores usando {twoFAMethod === 'authenticator' ? 'una aplicación autenticadora' : 'SMS'}.</p>
+                  <p className="font-semibold text-green-900 dark:text-green-300">{t('account.twoFAModal.enabledTitle')}</p>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                    {t('account.twoFAModal.enabledText', {
+                      method: twoFAMethod === 'authenticator' ? t('account.twoFAModal.methodAuthenticator') : t('account.twoFAModal.methodSMS'),
+                    })}
+                  </p>
                 </div>
 
                 <div className="text-sm text-gray-600 dark:text-gray-400 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="font-semibold text-blue-900 dark:text-blue-300 mb-1">📋 Códigos de Recuperación:</p>
-                  <p className="mb-2">Tienes {recoveryCodes.length} códigos de recuperación disponibles.</p>
+                  <p className="font-semibold text-blue-900 dark:text-blue-300 mb-1">{t('account.twoFAModal.recoveryCodesTitle')}</p>
+                  <p className="mb-2">{t('account.twoFAModal.recoveryCodesAvailable', { count: recoveryCodes.length })}</p>
                   <button
                     onClick={() => setShowRecoveryCodes(!showRecoveryCodes)}
                     className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold"
                   >
-                    {showRecoveryCodes ? 'Ocultar' : 'Ver'} códigos de recuperación
+                    {showRecoveryCodes ? t('account.twoFAModal.hideCodes') : t('account.twoFAModal.showCodes')}
                   </button>
                 </div>
 
@@ -494,7 +521,7 @@ export default function AccountPage() {
                 onClick={() => setShowTwoFAModal(false)}
                 className="flex-1 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-300"
               >
-                Cerrar
+                {t('account.twoFAModal.close')}
               </button>
               {!twoFAEnabled ? (
                 <button
@@ -502,7 +529,7 @@ export default function AccountPage() {
                   disabled={twoFALoading}
                   className="flex-1 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-300 disabled:opacity-50"
                 >
-                  {twoFALoading ? 'Habilitando...' : 'Habilitar 2FA'}
+                  {twoFALoading ? t('account.twoFAModal.enabling') : t('account.twoFAModal.enable')}
                 </button>
               ) : (
                 <button
@@ -510,7 +537,7 @@ export default function AccountPage() {
                   disabled={twoFALoading}
                   className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-all duration-300 disabled:opacity-50"
                 >
-                  {twoFALoading ? 'Deshabilitando...' : 'Deshabilitar 2FA'}
+                  {twoFALoading ? t('account.twoFAModal.disabling') : t('account.twoFAModal.disable')}
                 </button>
               )}
             </div>

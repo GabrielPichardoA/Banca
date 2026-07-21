@@ -10,7 +10,7 @@ export type Language = 'es' | 'en' | 'pt';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const translations = {
@@ -45,8 +45,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('language', lang);
   };
 
-  // Función para obtener traducciones anidadas
-  const t = (key: string): string => {
+  // Función para obtener traducciones anidadas, con soporte de interpolación {{param}}
+  const t = (key: string, params?: Record<string, string | number>): string => {
     const keys = key.split('.');
     let value: any = translations[language];
 
@@ -58,7 +58,17 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    return typeof value === 'string' ? value : key;
+    if (typeof value !== 'string') {
+      return key;
+    }
+
+    if (!params) {
+      return value;
+    }
+
+    return value.replace(/\{\{(\w+)\}\}/g, (match, paramKey) =>
+      paramKey in params ? String(params[paramKey]) : match
+    );
   };
 
   return (
